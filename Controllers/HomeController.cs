@@ -78,6 +78,7 @@ public class HomeController : Controller
                                   .OrderBy(n => n)
                                   .ToList(),
                 CurrentJerseyNumber = g.First().Player.CurrentJerseyNumber,
+                AvgGoalsPerMatch = Math.Round((double)g.Count() / g.Select(x => x.MatchId).Distinct().Count(), 2),
                 Breakdown = g.GroupBy(x => new { Team = x.Player.Team?.Name, Jersey = x.JerseyNumberAtMatch })
                               .Select(bg => new PlayerGoalStat.GoalBreakdown
                               {

@@ -41,7 +41,7 @@ else
                     {
                         var allMatches = t.HomeMatches.Concat(t.AwayMatches).ToList();
                         int totalMatches = allMatches.Count;
-                        int totalGoals = allMatches.Sum(m => m.Goals.Count);
+                        int totalGoals = t.HomeMatches.Sum(m => m.HomeScore) + t.AwayMatches.Sum(m => m.AwayScore);
                         double avgGoals = totalMatches > 0 ? Math.Round((double)totalGoals / totalMatches, 1) : 0;
                         bool canDelete = totalMatches == 0;
                         <tr class="@(t.IsMyTeam ? "table-primary" : "")">

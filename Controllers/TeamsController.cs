@@ -14,8 +14,8 @@ public class TeamsController : Controller
     public async Task<IActionResult> Index()
     {
         var teams = await _db.Teams
-            .Include(t => t.HomeMatches).ThenInclude(m => m.Goals)
-            .Include(t => t.AwayMatches).ThenInclude(m => m.Goals)
+            .Include(t => t.HomeMatches)
+            .Include(t => t.AwayMatches)
             .OrderBy(t => t.Name)
             .ToListAsync();
         return View(teams);

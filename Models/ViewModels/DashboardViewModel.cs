@@ -40,6 +40,7 @@ public class PlayerGoalStat
     public int TotalGoals { get; set; }
     public int PenaltyGoals { get; set; }
     public double GoalPercentage { get; set; }
+    public double AvgGoalsPerMatch { get; set; }
     public List<int> JerseyNumbers { get; set; } = [];
     public int? CurrentJerseyNumber { get; set; }
     public List<GoalBreakdown> Breakdown { get; set; } = [];

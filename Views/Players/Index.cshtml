@@ -28,6 +28,7 @@ else
                             <th>Takım</th>
                             <th class="text-center">Son Forma No</th>
                             <th class="text-center">Toplam Gol</th>
+                            <th class="text-center">Maç Başı Ort. Gol</th>
                         </tr>
                 </thead>
                 <tbody>
@@ -48,6 +49,21 @@ else
                             </td>
                             <td class="text-center">
                                 <span class="badge bg-success">@p.Goals.Count(g => !g.IsOwnGoal)</span>
+                            </td>
+                            <td class="text-center">
+                                @{
+                                    var nonOwnGoals = p.Goals.Where(g => !g.IsOwnGoal).ToList();
+                                    int matchCount = nonOwnGoals.Select(g => g.MatchId).Distinct().Count();
+                                    double avg = matchCount > 0 ? Math.Round((double)nonOwnGoals.Count / matchCount, 2) : 0;
+                                }
+                                @if (matchCount > 0)
+                                {
+                                    <span class="badge bg-secondary">@avg</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
                             </td>
                         </tr>
                     }

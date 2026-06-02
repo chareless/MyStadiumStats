@@ -257,6 +257,7 @@ else
                                 <th>Oyuncu</th>
                                 <th class="text-center">Toplam Gol</th>
                                 <th class="text-center">Penaltı</th>
+                                <th class="text-center">Maç Başı Ort.</th>
                                 <th class="text-center" style="min-width:160px;">Tüm Gollerdeki Pay</th>
                                 <th style="width:30px;"></th>
                             </tr>
@@ -287,6 +288,9 @@ else
                                             <span class="text-muted">-</span>
                                         }
                                     </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-secondary">@scorer.AvgGoalsPerMatch</span>
+                                    </td>
                                     <td>
                                         <div class="d-flex align-items-center gap-2">
                                             <div class="flex-grow-1 bg-light rounded" style="height:10px;">
@@ -302,7 +306,7 @@ else
                                 @if (hasBreakdown)
                                 {
                                     <tr class="scorer-detail d-none" id="@collapseId">
-                                        <td colspan="6" class="p-0">
+                                        <td colspan="7" class="p-0">
                                             <table class="table table-sm mb-0">
                                                 <thead>
                                                     <tr class="table-light">
