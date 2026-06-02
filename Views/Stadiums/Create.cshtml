@@ -1,0 +1,36 @@
+@model MyStadiumStats.Models.Stadium
+@{
+    ViewData["Title"] = Model.Id == 0 ? "Yeni Stadyum" : "Stadyumu Düzenle";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header fw-semibold">@ViewData["Title"]</div>
+            <div class="card-body">
+                <form asp-action="@(Model.Id == 0 ? "Create" : "Edit")" method="post">
+                    @Html.AntiForgeryToken()
+                    @if (Model.Id != 0) { <input type="hidden" asp-for="Id" /> }
+
+                    <div class="mb-3">
+                        <label asp-for="Name" class="form-label"></label>
+                        <input asp-for="Name" class="form-control" placeholder="örn. Rams Park" />
+                        <span asp-validation-for="Name" class="text-danger small"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="City" class="form-label"></label>
+                        <input asp-for="City" class="form-control" placeholder="örn. İstanbul" />
+                    </div>
+                    <div class="mb-4">
+                        <label asp-for="Country" class="form-label"></label>
+                        <input asp-for="Country" class="form-control" placeholder="örn. Türkiye" />
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Kaydet</button>
+                        <a asp-action="Index" class="btn btn-outline-secondary">İptal</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

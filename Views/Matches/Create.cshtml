@@ -1,0 +1,341 @@
+﻿@model MyStadiumStats.Models.ViewModels.MatchFormViewModel
+@{
+    ViewData["Title"] = Model.Id == 0 ? "Yeni Maç" : "Maçı Düzenle";
+    var isEdit = Model.Id != 0;
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">Maçlarım</a></li>
+        <li class="breadcrumb-item active">@ViewData["Title"]</li>
+    </ol>
+</nav>
+
+@if (!ViewContext.ViewData.ModelState.IsValid && ViewContext.ViewData.ModelState.Values.Any(v => v.Errors.Count > 0))
+{
+    <div asp-validation-summary="All" class="alert alert-danger mb-3" role="alert"></div>
+}
+
+<form id="matchForm" asp-action="@(isEdit ? "Edit" : "Create")" method="post">
+    @Html.AntiForgeryToken()
+    @if (isEdit) { <input type="hidden" asp-for="Id" /> }
+    <input type="hidden" asp-for="GoalsJson" id="GoalsJson" />
+
+    <div class="card shadow-sm mb-3">
+        <div class="card-header fw-semibold">Maç Bilgileri</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label asp-for="Date" class="form-label">Tarih</label>
+                    <input asp-for="Date" class="form-control" type="date" />
+                    <span asp-validation-for="Date" class="text-danger small"></span>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="MatchType" class="form-label">Maç Türü</label>
+                    <select asp-for="MatchType" class="form-select select2-standard" style="width: 100%;">
+                        <option value="">-- Seçin --</option>
+                        <option value="Süper Lig">Süper Lig</option>
+                        <option value="TFF 1. Lig">TFF 1. Lig</option>
+                        <option value="TFF 2. Lig">TFF 2. Lig</option>
+                        <option value="Türkiye Kupası">Türkiye Kupası</option>
+                        <option value="Süper Kupa">Süper Kupa</option>
+                        <option value="Şampiyonlar Ligi">Şampiyonlar Ligi</option>
+                        <option value="Avrupa Ligi">Avrupa Ligi</option>
+                        <option value="Konferans Ligi">Konferans Ligi</option>
+                        <option value="Dostluk Maçı">Dostluk Maçı</option>
+                        <option value="Diğer">Diğer</option>
+                    </select>
+                    <span asp-validation-for="MatchType" class="text-danger small"></span>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="StadiumName" class="form-label">Stadyum</label>
+                    <select asp-for="StadiumName" class="form-select select2-tags" autocomplete="off" style="width: 100%;">
+                        <option value=""></option>
+                        @foreach (var s in Model.StadiumNames) 
+                        { 
+                            <option value="@s">@s</option> 
+                        }
+                    </select>
+                    <span asp-validation-for="StadiumName" class="text-danger small"></span>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">&nbsp;</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-3">
+        <div class="card-header fw-semibold">Takımlar ve Skor</div>
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label asp-for="HomeTeamName" class="form-label">Ev Sahibi</label>
+                    <select asp-for="HomeTeamName" class="form-select select2-tags" autocomplete="off" style="width: 100%;">
+                        <option value=""></option>
+                        @foreach (var t in Model.TeamNames) 
+                        { 
+                            <option value="@t">@t</option> 
+                        }
+                    </select>
+                    <span asp-validation-for="HomeTeamName" class="text-danger small"></span>
+                </div>
+                <div class="col-md-1 text-center">
+                    <label class="form-label">Skor</label>
+                    <input asp-for="HomeScore" class="form-control text-center fw-bold" type="number" min="0" max="99" />
+                </div>
+                <div class="col-md-1 text-center d-flex align-items-end justify-content-center pb-1">
+                    <span class="fs-4 fw-bold text-muted">-</span>
+                </div>
+                <div class="col-md-1 text-center">
+                    <label class="form-label">Skor</label>
+                    <input asp-for="AwayScore" class="form-control text-center fw-bold" type="number" min="0" max="99" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="AwayTeamName" class="form-label">Deplasman</label>
+                    <select asp-for="AwayTeamName" class="form-select select2-tags" autocomplete="off" style="width: 100%;">
+                        <option value=""></option>
+                        @foreach (var t in Model.TeamNames) 
+                        { 
+                            <option value="@t">@t</option> 
+                        }
+                    </select>
+                    <span asp-validation-for="AwayTeamName" class="text-danger small"></span>
+                </div>
+            </div>
+            <div class="row g-3 mt-1">
+                <div class="col-md-4">
+                    <label asp-for="HomeCoachName" class="form-label text-muted small">Ev Teknik Direktörü (opsiyonel)</label>
+                    <select asp-for="HomeCoachName" class="form-select select2-tags" autocomplete="off" style="width: 100%;">
+                        <option value=""></option>
+                        @foreach (var c in Model.CoachNames) 
+                        { 
+                            <option value="@c">@c</option> 
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4 offset-md-4">
+                    <label asp-for="AwayCoachName" class="form-label text-muted small">Deplasman Teknik Direktörü (opsiyonel)</label>
+                    <select asp-for="AwayCoachName" class="form-select select2-tags" autocomplete="off" style="width: 100%;">
+                        <option value=""></option>
+                        @foreach (var c in Model.CoachNames) 
+                        { 
+                            <option value="@c">@c</option> 
+                        }
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-3">
+        <div class="card-header fw-semibold">Goller</div>
+        <div class="card-body p-0">
+            <table class="table table-sm mb-0" id="goalTable">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width:90px;">Taraf</th>
+                        <th>Oyuncu</th>
+                        <th style="width:70px;">Forma No</th>
+                        <th style="width:70px;">Dakika</th>
+                        <th style="width:70px;" class="text-center">Kendi Kalesine</th>
+                        <th style="width:70px;" class="text-center">Penaltı</th>
+                        <th style="width:40px;"></th>
+                    </tr>
+                </thead>
+                <tbody id="goalRows"></tbody>
+            </table>
+        </div>
+        <div class="card-footer">
+            <button type="button" class="btn btn-sm btn-outline-success" onclick="addGoalRow()">+ Gol Ekle</button>
+            <small class="text-muted ms-3">Goller skor ile eşleşmek zorunda (kaydetmeden önce kontrol edilir).</small>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-3">
+        <div class="card-header fw-semibold">Notlar (opsiyonel)</div>
+        <div class="card-body">
+            <textarea asp-for="Notes" class="form-control" rows="2" placeholder="Maç ile ilgili notlarınız..."></textarea>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary px-4">Kaydet</button>
+        <a asp-action="Index" class="btn btn-outline-secondary">İptal</a>
+    </div>
+</form>
+
+@section Scripts {
+<script>
+const players = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+    Model.Players.Select(p => new { name = p.Name, team = p.Team != null ? p.Team.Name : "" }).ToList()
+));
+
+let goals = [];
+try { 
+    goals = JSON.parse(document.getElementById('GoalsJson').value || '[]'); 
+} catch(e) { 
+    console.error("JSON parse hatası:", e); 
+}
+
+function renderGoalRows() {
+    const tbody = document.getElementById('goalRows');
+    
+    $(tbody).find('.select2-player-row').each(function() {
+        if ($(this).data('select2')) {
+            $(this).select2('destroy');
+        }
+    });
+    
+    tbody.innerHTML = '';
+    
+    goals.forEach((g, i) => {
+        const tr = document.createElement('tr');
+        const playerOptionsHtml = players.map(p => `<option value="${escHtml(p.name)}">${escHtml(p.name)}</option>`).join('');
+        
+        tr.innerHTML = `
+            <td>
+                <select class="form-select form-select-sm opt-teamside">
+                    <option value="home" ${g.teamSide==='home'?'selected':''}>Ev</option>
+                    <option value="away" ${g.teamSide==='away'?'selected':''}>Dep.</option>
+                </select>
+            </td>
+            <td>
+                <select class="form-select form-select-sm select2-player-row" style="width: 100%;">
+                    <option value=""></option>
+                    ${playerOptionsHtml}
+                </select>
+            </td>
+            <td>
+                <input type="number" class="form-control form-control-sm text-center txt-jersey" placeholder="No"
+                    min="1" max="99" value="${g.jerseyNumber||''}" />
+            </td>
+            <td>
+                <input type="number" class="form-control form-control-sm text-center txt-minute" placeholder="Dak."
+                    min="1" max="120" value="${g.minute||''}" />
+            </td>
+            <td class="text-center">
+                <input class="form-check-input chk-owngoal" type="checkbox" ${g.isOwnGoal?'checked':''} />
+            </td>
+            <td class="text-center">
+                <input class="form-check-input chk-penalty" type="checkbox" ${g.isPenalty?'checked':''} />
+            </td>
+            <td>
+                <button type="button" class="btn btn-sm btn-outline-danger btn-remove-goal">&times;</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+        
+        const selectElem = tr.querySelector('.select2-player-row');
+        
+        $(selectElem).select2({
+            tags: true,
+            theme: 'bootstrap-5',
+            width: '100%',
+            placeholder: 'Oyuncu seçin...',
+            minimumResultsForSearch: 0,
+            allowClear: true
+        }).on('change', function() {
+            goals[i].playerName = this.value;
+        });
+        
+        // Eğer hafızada veri varsa ve bu veri mevcut listede yoksa bile select2-tags için option ekliyoruz
+        if (g.playerName) {
+            if ($(selectElem).find("option[value='" + escHtml(g.playerName) + "']").length === 0) {
+                var newOption = new Option(g.playerName, g.playerName, true, true);
+                $(selectElem).append(newOption).trigger('change');
+            } else {
+                $(selectElem).val(g.playerName).trigger('change');
+            }
+        }
+
+        tr.querySelector('.opt-teamside').addEventListener('change', function() { goals[i].teamSide = this.value; });
+        tr.querySelector('.txt-jersey').addEventListener('change', function() { goals[i].jerseyNumber = this.value ? parseInt(this.value) : null; });
+        tr.querySelector('.txt-minute').addEventListener('change', function() { goals[i].minute = this.value ? parseInt(this.value) : null; });
+        tr.querySelector('.chk-owngoal').addEventListener('change', function() { goals[i].isOwnGoal = this.checked; });
+        tr.querySelector('.chk-penalty').addEventListener('change', function() { goals[i].isPenalty = this.checked; });
+        tr.querySelector('.btn-remove-goal').addEventListener('click', function() { removeGoal(i); });
+    });
+}
+
+function escHtml(s) {
+    if (!s) return '';
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function syncGoalsFromDom() {
+    document.querySelectorAll('#goalRows tr').forEach(function(tr, i) {
+        if (i >= goals.length) return;
+        
+        // Select2 değerini jQuery metoduyla güvenli bir şekilde alıyoruz
+        const $playerSelect = $(tr).find('.select2-player-row');
+        if ($playerSelect.length) {
+            goals[i].playerName = $playerSelect.val() || '';
+        }
+        
+        const teamSide = tr.querySelector('.opt-teamside');
+        if (teamSide) goals[i].teamSide = teamSide.value;
+        const jersey = tr.querySelector('.txt-jersey');
+        if (jersey) goals[i].jerseyNumber = jersey.value ? parseInt(jersey.value) : null;
+        const minute = tr.querySelector('.txt-minute');
+        if (minute) goals[i].minute = minute.value ? parseInt(minute.value) : null;
+        const ownGoal = tr.querySelector('.chk-owngoal');
+        if (ownGoal) goals[i].isOwnGoal = ownGoal.checked;
+        const penalty = tr.querySelector('.chk-penalty');
+        if (penalty) goals[i].isPenalty = penalty.checked;
+    });
+}
+
+window.addGoalRow = function() {
+    syncGoalsFromDom();
+    goals.push({ teamSide:'home', playerName:'', jerseyNumber:null, minute:null, isOwnGoal:false, isPenalty:false });
+    renderGoalRows();
+}
+
+window.removeGoal = function(i) {
+    syncGoalsFromDom();
+    goals.splice(i, 1); 
+    renderGoalRows(); 
+}
+
+document.getElementById('matchForm').addEventListener('submit', function(e) {
+    const homeScore = parseInt(document.querySelector('[name=HomeScore]').value) || 0;
+    const awayScore = parseInt(document.querySelector('[name=AwayScore]').value) || 0;
+    
+    const valid = goals.filter(g => g.playerName && g.playerName.trim());
+    
+    const hg = valid.filter(g => (g.teamSide==='home' && !g.isOwnGoal) || (g.teamSide==='away' && g.isOwnGoal)).length;
+    const ag = valid.filter(g => (g.teamSide==='away' && !g.isOwnGoal) || (g.teamSide==='home' && g.isOwnGoal)).length;
+    
+    if (hg !== homeScore || ag !== awayScore) {
+        e.preventDefault();
+        alert('Gol sayıları uyuşmuyor!\nEv: ' + hg + ' gol girildi, skor: ' + homeScore + '\nDeplasman: ' + ag + ' gol girildi, skor: ' + awayScore);
+        return;
+    }
+    document.getElementById('GoalsJson').value = JSON.stringify(valid);
+});
+
+$(document).ready(function() {
+    $('.select2-standard').select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+        placeholder: '-- Seçin --',
+        allowClear: true,
+        minimumResultsForSearch: 0
+    });
+
+    $('.select2-tags').select2({
+        tags: true,
+        theme: 'bootstrap-5',
+        width: '100%',
+        placeholder: 'Seçiniz veya elle yazınız...',
+        allowClear: true,
+        minimumResultsForSearch: 0 
+    });
+
+    renderGoalRows();
+});
+</script>
+}

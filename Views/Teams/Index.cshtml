@@ -1,0 +1,83 @@
+﻿@model IEnumerable<MyStadiumStats.Models.Team>
+@{
+    ViewData["Title"] = "Takımlar";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">Takımlar</h2>
+    <a asp-action="Create" class="btn btn-success">+ Yeni Takım</a>
+</div>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+@if (!Model.Any())
+{
+    <div class="text-center py-5">
+        <p class="text-muted">Henüz takım eklenmedi.</p>
+        <a asp-action="Create" class="btn btn-primary">Takım Ekle</a>
+    </div>
+}
+else
+{
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Takım Adı</th>
+                        <th>Ülke</th>
+                        <th class="text-center">Toplam Maç</th>
+                        <th class="text-center">Toplam Gol</th>
+                        <th class="text-center">Maç Başı Ort. Gol</th>
+                        <th class="text-center">Benim Takımım</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var t in Model)
+                    {
+                        var allMatches = t.HomeMatches.Concat(t.AwayMatches).ToList();
+                        int totalMatches = allMatches.Count;
+                        int totalGoals = allMatches.Sum(m => m.Goals.Count);
+                        double avgGoals = totalMatches > 0 ? Math.Round((double)totalGoals / totalMatches, 1) : 0;
+                        bool canDelete = totalMatches == 0;
+                        <tr class="@(t.IsMyTeam ? "table-primary" : "")">
+                            <td>
+                                <strong>@t.Name</strong>
+                                @if (t.IsMyTeam) { <span class="badge bg-primary ms-2">Benim Takımım</span> }
+                            </td>
+                            <td class="text-muted">@(t.Country ?? "-")</td>
+                            <td class="text-center"><span class="badge bg-secondary">@totalMatches</span></td>
+                            <td class="text-center"><span class="badge bg-success">@totalGoals</span></td>
+                            <td class="text-center">
+                                @if (totalMatches > 0) { <span class="badge bg-info text-dark">@avgGoals</span> }
+                                else { <span class="text-muted">-</span> }
+                            </td>
+                            <td class="text-center">
+                                @if (t.IsMyTeam) { <span class="text-success fs-5">&#10003;</span> }
+                            </td>
+                            <td class="text-end">
+                                <a asp-action="Edit" asp-route-id="@t.Id" class="btn btn-sm btn-outline-secondary">Düzenle</a>
+                                @if (canDelete)
+                                {
+                                    <form asp-action="Delete" asp-route-id="@t.Id" method="post" class="d-inline"
+                                          onsubmit="return confirm('@t.Name takımını silmek istediğinize emin misiniz?')">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Sil</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn btn-sm btn-outline-danger" disabled title="Maç kaydı olan takım silinemez">Sil</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

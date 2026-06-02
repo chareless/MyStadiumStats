@@ -1,0 +1,157 @@
+@model MyStadiumStats.Models.Match
+@{
+    ViewData["Title"] = "Maç Detayı";
+    var homeGoals = Model.Goals.Where(g => !g.IsOwnGoal && g.Player.TeamId == Model.HomeTeamId)
+                               .Concat(Model.Goals.Where(g => g.IsOwnGoal && g.Player.TeamId == Model.AwayTeamId))
+                               .OrderBy(g => g.Minute).ToList();
+    var awayGoals = Model.Goals.Where(g => !g.IsOwnGoal && g.Player.TeamId == Model.AwayTeamId)
+                               .Concat(Model.Goals.Where(g => g.IsOwnGoal && g.Player.TeamId == Model.HomeTeamId))
+                               .OrderBy(g => g.Minute).ToList();
+}
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-controller="Matches" asp-action="Index">Maçlarım</a></li>
+        <li class="breadcrumb-item active">Maç Detayı</li>
+    </ol>
+</nav>
+
+<!-- Match Header -->
+<div class="card shadow mb-4">
+    <div class="card-body text-center py-4">
+        <div class="text-muted mb-1">
+            <span class="badge bg-secondary me-2">@Model.MatchType</span>
+            <span>@Model.Date.ToString("dd MMMM yyyy", new System.Globalization.CultureInfo("tr-TR"))</span>
+            <span class="text-muted mx-2">|</span>
+            <span>&#127968; @Model.Stadium.Name</span>
+            @if (!string.IsNullOrEmpty(Model.Stadium.City))
+            {
+                <span class="text-muted">, @Model.Stadium.City</span>
+            }
+        </div>
+        <div class="d-flex justify-content-center align-items-center gap-4 mt-3">
+            <div class="text-end" style="min-width:180px;">
+                <h3 class="mb-0">@Model.HomeTeam.Name</h3>
+                @if (Model.HomeCoach != null)
+                {
+                    <small class="text-muted">TD: @Model.HomeCoach.Name</small>
+                }
+            </div>
+            <div class="text-center px-3">
+                <div class="display-4 fw-bold bg-dark text-white rounded px-3 py-1">
+                    @Model.HomeScore <span class="text-secondary">-</span> @Model.AwayScore
+                </div>
+                @{
+                    string result = Model.HomeScore > Model.AwayScore ? $"{Model.HomeTeam.Name} Kazandı" :
+                                    Model.AwayScore > Model.HomeScore ? $"{Model.AwayTeam.Name} Kazandı" : "Beraberlik";
+                    string resultBadge = Model.HomeScore > Model.AwayScore ? "bg-success" :
+                                         Model.AwayScore > Model.HomeScore ? "bg-danger" : "bg-warning text-dark";
+                }
+                <div class="mt-2"><span class="badge @resultBadge fs-6">@result</span></div>
+            </div>
+            <div class="text-start" style="min-width:180px;">
+                <h3 class="mb-0">@Model.AwayTeam.Name</h3>
+                @if (Model.AwayCoach != null)
+                {
+                    <small class="text-muted">TD: @Model.AwayCoach.Name</small>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Goals Section -->
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header fw-semibold text-center">
+                &#9917; @Model.HomeTeam.Name Golleri (@homeGoals.Count)
+            </div>
+            <div class="card-body">
+                @if (!homeGoals.Any())
+                {
+                    <p class="text-muted text-center mb-0">Gol yok</p>
+                }
+                else
+                {
+                    <ul class="list-unstyled mb-0">
+                        @foreach (var g in homeGoals)
+                        {
+                            <li class="d-flex align-items-center gap-2 py-1 border-bottom">
+                                <span class="badge bg-dark rounded-pill" style="min-width:40px;">@g.Minute'</span>
+                                @if (g.JerseyNumberAtMatch.HasValue)
+                                {
+                                    <span class="badge bg-primary">#@g.JerseyNumberAtMatch</span>
+                                }
+                                <strong>@g.Player.Name</strong>
+                                @if (g.IsOwnGoal)
+                                {
+                                    <span class="badge bg-danger ms-1">Kendi Kalesi</span>
+                                }
+                                @if (g.IsPenalty)
+                                {
+                                    <span class="badge bg-warning text-dark ms-1">Penaltı</span>
+                                }
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header fw-semibold text-center">
+                &#9917; @Model.AwayTeam.Name Golleri (@awayGoals.Count)
+            </div>
+            <div class="card-body">
+                @if (!awayGoals.Any())
+                {
+                    <p class="text-muted text-center mb-0">Gol yok</p>
+                }
+                else
+                {
+                    <ul class="list-unstyled mb-0">
+                        @foreach (var g in awayGoals)
+                        {
+                            <li class="d-flex align-items-center gap-2 py-1 border-bottom">
+                                <span class="badge bg-dark rounded-pill" style="min-width:40px;">@g.Minute'</span>
+                                @if (g.JerseyNumberAtMatch.HasValue)
+                                {
+                                    <span class="badge bg-primary">#@g.JerseyNumberAtMatch</span>
+                                }
+                                <strong>@g.Player.Name</strong>
+                                @if (g.IsOwnGoal)
+                                {
+                                    <span class="badge bg-danger ms-1">Kendi Kalesi</span>
+                                }
+                                @if (g.IsPenalty)
+                                {
+                                    <span class="badge bg-warning text-dark ms-1">Penaltı</span>
+                                }
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Notes))
+{
+    <div class="card shadow-sm mb-4">
+        <div class="card-header fw-semibold">Notlar</div>
+        <div class="card-body">@Model.Notes</div>
+    </div>
+}
+
+<div class="d-flex gap-2">
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">Düzenle</a>
+    <form asp-action="Delete" asp-route-id="@Model.Id" method="post"
+          onsubmit="return confirm('Bu maçı silmek istediğinize emin misiniz?')">
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn btn-danger">Sil</button>
+    </form>
+    <a asp-action="Index" class="btn btn-outline-secondary">Geri Dön</a>
+</div>

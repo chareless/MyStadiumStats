@@ -1,0 +1,72 @@
+@model IEnumerable<MyStadiumStats.Models.Stadium>
+@{
+    ViewData["Title"] = "Stadyumlar";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">Stadyumlar</h2>
+</div>
+
+<p class="text-muted small">
+    Stadyumlar maç eklenirken otomatik oluşturulur.
+</p>
+
+@if (!Model.Any())
+{
+    <div class="text-center py-5">
+        <p class="text-muted">Henüz stadyum kaydı yok. Maç eklerken stadyum girince otomatik oluşur.</p>
+    </div>
+}
+else
+{
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Stadyum Adı</th>
+                        <th class="text-center">Toplam Maç</th>
+                        <th class="text-center">Toplam Gol</th>
+                        <th class="text-center">Maç Başı Ort. Gol</th>
+                        <th>Son Maç</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in Model)
+                    {
+                        int totalMatches = s.Matches.Count;
+                        int totalGoals = s.Matches.Sum(m => m.Goals.Count);
+                        double avgGoals = totalMatches > 0 ? Math.Round((double)totalGoals / totalMatches, 1) : 0;
+                        var lastMatch = s.Matches.OrderByDescending(m => m.Date).FirstOrDefault();
+                        <tr>
+                            <td><strong>@s.Name</strong></td>
+                            <td class="text-center"><span class="badge bg-secondary">@totalMatches</span></td>
+                            <td class="text-center"><span class="badge bg-success">@totalGoals</span></td>
+                            <td class="text-center">
+                                @if (totalMatches > 0)
+                                {
+                                    <span class="badge bg-info text-dark">@avgGoals</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td class="text-muted small">
+                                @if (lastMatch != null)
+                                {
+                                    <span>@lastMatch.HomeTeam.Name @lastMatch.HomeScore–@lastMatch.AwayScore @lastMatch.AwayTeam.Name</span>
+                                    <span class="text-muted ms-1">(@lastMatch.Date.ToString("dd.MM.yyyy"))</span>
+                                }
+                                else
+                                {
+                                    <span>-</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

@@ -1,0 +1,436 @@
+@model MyStadiumStats.Models.ViewModels.DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+    var matchTypeLabels = System.Text.Json.JsonSerializer.Serialize(Model.MatchesByType.Keys.ToList());
+    var matchTypeCounts = System.Text.Json.JsonSerializer.Serialize(Model.MatchesByType.Values.ToList());
+    var scorerNames = System.Text.Json.JsonSerializer.Serialize(Model.TopScorers.Select(s => s.PlayerName).ToList());
+    var scorerGoals = System.Text.Json.JsonSerializer.Serialize(Model.TopScorers.Select(s => s.TotalGoals).ToList());
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-0">📊 Dashboard</h2>
+        @if (Model.MyTeam != null)
+        {
+            <span class="text-muted">Takımım: <strong class="text-primary">@Model.MyTeam.Name</strong></span>
+        }
+        else
+        {
+            <small class="text-warning">
+                Henüz bir takım "Benim Takımım" olarak işaretlenmedi.
+                <a asp-controller="Teams" asp-action="Index">Takımlar</a> sayfasından ayarlayabilirsiniz.
+            </small>
+        }
+    </div>
+    <a asp-controller="Matches" asp-action="Create" class="btn btn-success btn-lg">+ Yeni Maç Ekle</a>
+</div>
+
+@if (Model.TotalMatches == 0)
+{
+    <div class="text-center py-5">
+        <div class="display-1 text-muted">📊</div>
+        <h3 class="text-muted mt-3">Henüz maç kaydedilmedi</h3>
+        <p class="text-muted">İlk maçını ekleyerek istatistiklerini takip etmeye başla!</p>
+        <a asp-controller="Matches" asp-action="Create" class="btn btn-primary btn-lg mt-2">İlk Maçı Ekle</a>
+    </div>
+}
+else
+{
+    <!-- Stat Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3 col-lg-2">
+            <div class="card text-center border-0 shadow-sm h-100">
+                <div class="card-body py-3">
+                    <div class="fs-1 fw-bold text-primary">@Model.TotalMatches</div>
+                    <div class="text-muted small">Toplam Maç</div>
+                </div>
+            </div>
+        </div>
+        @if (Model.MyTeam != null)
+        {
+            <div class="col-6 col-md-3 col-lg-2">
+                <div class="card text-center border-0 shadow-sm h-100 bg-success bg-opacity-10">
+                    <div class="card-body py-3">
+                        <div class="fs-1 fw-bold text-success">@Model.HomeWins</div>
+                        <div class="text-muted small">Ev Gal.</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+                <div class="card text-center border-0 shadow-sm h-100 bg-info bg-opacity-10">
+                    <div class="card-body py-3">
+                        <div class="fs-1 fw-bold text-info">@Model.AwayWins</div>
+                        <div class="text-muted small">Dep. Gal.</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+                <div class="card text-center border-0 shadow-sm h-100 bg-warning bg-opacity-10">
+                    <div class="card-body py-3">
+                        <div class="fs-1 fw-bold text-warning">@Model.Draws</div>
+                        <div class="text-muted small">Beraberlik</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+                <div class="card text-center border-0 shadow-sm h-100 bg-danger bg-opacity-10">
+                    <div class="card-body py-3">
+                        <div class="fs-1 fw-bold text-danger">@Model.Losses</div>
+                        <div class="text-muted small">Mağlubiyet</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+                <div class="card text-center border-0 shadow-sm h-100">
+                    <div class="card-body py-3">
+                        <div class="fs-1 fw-bold">@Model.WinRate%</div>
+                        <div class="text-muted small">Gal. Oranı</div>
+                    </div>
+                </div>
+            </div>
+        }
+        <div class="col-6 col-md-3 col-lg-2">
+            <div class="card text-center border-0 shadow-sm h-100">
+                <div class="card-body py-3">
+                    <div class="fs-1 fw-bold text-dark">@Model.TotalGoalsWitnessed</div>
+                    <div class="text-muted small">İzlenen Gol</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row g-3 mb-4">
+        @if (Model.MyTeam != null)
+        {
+            <div class="col-md-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header fw-semibold">Sonuç Dağılımı</div>
+                    <div class="card-body d-flex justify-content-center align-items-center">
+                        <canvas id="resultChart" style="max-height:220px;"></canvas>
+                    </div>
+                </div>
+            </div>
+        }
+        @if (Model.MatchesByType.Any())
+        {
+            <div class="col-md-@(Model.MyTeam != null ? "4" : "6")">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header fw-semibold">Maç Türüne Göre Dağılım</div>
+                    <div class="card-body d-flex justify-content-center align-items-center">
+                        <canvas id="matchTypeChart" style="max-height:220px;"></canvas>
+                    </div>
+                </div>
+            </div>
+        }
+        @if (Model.TopScorers.Any())
+        {
+            <div class="col-md-@(Model.MyTeam != null ? "4" : "6")">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header fw-semibold">En Çok Gol Atanlar</div>
+                    <div class="card-body">
+                        <canvas id="scorersChart" style="max-height:220px;"></canvas>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Takip Edilen Takımlar -->
+    @if (Model.FollowedTeams.Any())
+    {
+        <div class="mb-4">
+            <h4 class="mb-3">📌 Takip Ettiğim Takımlar</h4>
+            <div class="row g-3">
+                @foreach (var teamStat in Model.FollowedTeams)
+                {
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header fw-semibold">@teamStat.Team.Name</div>
+                            <div class="card-body">
+                                <div class="row g-2 text-center mb-3">
+                                    <div class="col-4">
+                                        <div class="text-success fw-bold">@teamStat.Wins</div>
+                                        <small class="text-muted">Galibiyet</small>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="text-warning fw-bold">@teamStat.Draws</div>
+                                        <small class="text-muted">Beraberlik</small>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="text-danger fw-bold">@teamStat.Losses</div>
+                                        <small class="text-muted">Mağlubiyet</small>
+                                    </div>
+                                </div>
+                                <div class="text-muted small">
+                                    <strong>@teamStat.TotalMatches maç</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Son Maçlar -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center fw-semibold">
+            <span>Son Maçlar</span>
+            <a asp-controller="Matches" asp-action="Index" class="btn btn-sm btn-outline-primary">Tümünü Gör</a>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tarih</th>
+                            <th>Maç</th>
+                            <th class="text-center">Skor</th>
+                            <th>Stadyum</th>
+                            <th>Tür</th>
+                            <th>Sonuç</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var m in Model.RecentMatches)
+                        {
+                            string resultClass = "text-muted";
+                            string resultText;
+                            if (Model.MyTeam != null &&
+                                (m.HomeTeamId == Model.MyTeam.Id || m.AwayTeamId == Model.MyTeam.Id))
+                            {
+                                bool myHome = m.HomeTeamId == Model.MyTeam.Id;
+                                bool win = myHome ? m.HomeScore > m.AwayScore : m.AwayScore > m.HomeScore;
+                                bool draw = m.HomeScore == m.AwayScore;
+                                resultClass = win ? "text-success fw-bold" : draw ? "text-warning fw-bold" : "text-danger fw-bold";
+                                resultText = win ? "GALİBİYET" : draw ? "BERABERLİK" : "MAĞLUBİYET";
+                            }
+                            else
+                            {
+                                resultText = m.HomeScore > m.AwayScore ? $"{m.HomeTeam.Name} Kazandı" :
+                                             m.AwayScore > m.HomeScore ? $"{m.AwayTeam.Name} Kazandı" : "Beraberlik";
+                            }
+                            <tr>
+                                <td>@m.Date.ToString("dd.MM.yyyy")</td>
+                                <td><strong>@m.HomeTeam.Name</strong> <span class="text-muted">vs</span> <strong>@m.AwayTeam.Name</strong></td>
+                                <td class="text-center"><span class="badge bg-dark fs-6 px-3">@m.HomeScore - @m.AwayScore</span></td>
+                                <td class="text-muted small">@m.Stadium.Name</td>
+                                <td><span class="badge bg-secondary">@m.MatchType</span></td>
+                                <td class="@resultClass">@resultText</td>
+                                <td>
+                                    <a asp-controller="Matches" asp-action="Details" asp-route-id="@m.Id"
+                                       class="btn btn-sm btn-outline-secondary">Detay</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .scorer-bar { height: 10px; border-radius: 4px; }
+        .scorer-bar-danger  { background-color: #dc3545; }
+        .scorer-bar-warning { background-color: #ffc107; }
+        .scorer-bar-info    { background-color: #0dcaf0; }
+        .scorer-bar-muted   { background-color: #6c757d; }
+        tr.scorer-main { cursor: pointer; }
+        tr.scorer-main:hover { background-color: rgba(0,0,0,.04); }
+        tr.scorer-detail td { background-color: rgba(0,0,0,.02); font-size: .875rem; }
+        body.dark-mode tr.scorer-detail td { background-color: rgba(255,255,255,.04); }
+    </style>
+
+    <!-- Golcü İstatistikleri -->
+    @if (Model.TopScorers.Any())
+    {
+        <div class="card shadow-sm">
+            <div class="card-header fw-semibold">Golcü İstatistikleri</div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width:40px;">#</th>
+                                <th>Oyuncu</th>
+                                <th class="text-center">Toplam Gol</th>
+                                <th class="text-center">Penaltı</th>
+                                <th class="text-center" style="min-width:160px;">Tüm Gollerdeki Pay</th>
+                                <th style="width:30px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (int i = 0; i < Model.TopScorers.Count; i++)
+                            {
+                                var scorer = Model.TopScorers[i];
+                                var collapseId = $"scorer-detail-{i}";
+                                var hasBreakdown = scorer.Breakdown.Count > 1 ||
+                                    (scorer.Breakdown.Count == 1 && (scorer.Breakdown[0].TeamName != scorer.TeamName || scorer.Breakdown[0].JerseyNumber.HasValue));
+                                var pct = scorer.GoalPercentage;
+                                var barClass = pct >= 50 ? "scorer-bar-danger" : pct >= 25 ? "scorer-bar-warning" : pct >= 10 ? "scorer-bar-info" : "scorer-bar-muted";
+                                var pctCss = pct.ToString("F1", System.Globalization.CultureInfo.InvariantCulture);
+                                <tr class="scorer-main @(hasBreakdown ? "scorer-expandable" : "")" data-detail-target="@collapseId">
+                                    <td class="text-muted">@(i + 1)</td>
+                                    <td><strong>@scorer.PlayerName</strong> <span class="text-muted small">@(scorer.TeamName ?? "")</span></td>
+                                    <td class="text-center">
+                                        <span class="badge bg-success fs-6 px-3">@scorer.TotalGoals</span>
+                                    </td>
+                                    <td class="text-center">
+                                        @if (scorer.PenaltyGoals > 0)
+                                        {
+                                            <span class="badge bg-warning text-dark">@scorer.PenaltyGoals</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="flex-grow-1 bg-light rounded" style="height:10px;">
+                                                <div class="scorer-bar @barClass" style="width:@pctCss%;"></div>
+                                            </div>
+                                            <small class="text-nowrap">@pct%</small>
+                                        </div>
+                                    </td>
+                                    <td class="text-center text-muted small">
+                                        @if (hasBreakdown) { <span class="chevron-icon">▼</span> }
+                                    </td>
+                                </tr>
+                                @if (hasBreakdown)
+                                {
+                                    <tr class="scorer-detail d-none" id="@collapseId">
+                                        <td colspan="6" class="p-0">
+                                            <table class="table table-sm mb-0">
+                                                <thead>
+                                                    <tr class="table-light">
+                                                        <th style="width:40px;padding-left:2.5rem;"></th>
+                                                        <th>Takım</th>
+                                                        <th class="text-center">Forma No</th>
+                                                        <th class="text-center">Gol</th>
+                                                        <th class="text-center">Penaltı</th>
+                                                        <th></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var bd in scorer.Breakdown)
+                                                    {
+                                                        <tr>
+                                                            <td style="padding-left:2.5rem;"></td>
+                                                            <td class="text-muted">@(bd.TeamName ?? "-")</td>
+                                                            <td class="text-center">
+                                                                @if (bd.JerseyNumber.HasValue)
+                                                                {
+                                                                    <span class="badge bg-secondary">#@bd.JerseyNumber</span>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="text-muted">-</span>
+                                                                }
+                                                            </td>
+                                                            <td class="text-center"><span class="badge bg-success">@bd.Goals</span></td>
+                                                            <td class="text-center">
+                                                                @if (bd.PenaltyGoals > 0)
+                                                                {
+                                                                    <span class="badge bg-warning text-dark">@bd.PenaltyGoals</span>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="text-muted">-</span>
+                                                                }
+                                                            </td>
+                                                            <td></td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        // Golcü satırı toggle
+        document.querySelectorAll('tr.scorer-expandable').forEach(function(tr) {
+            tr.addEventListener('click', function() {
+                var targetId = this.getAttribute('data-detail-target');
+                var detailRow = document.getElementById(targetId);
+                if (!detailRow) return;
+                var isHidden = detailRow.classList.contains('d-none');
+                detailRow.classList.toggle('d-none', !isHidden);
+                var chevron = this.querySelector('.chevron-icon');
+                if (chevron) chevron.textContent = isHidden ? '▲' : '▼';
+            });
+        });
+        const chartColors = ['#4e73df','#1cc88a','#36b9cc','#f6c23e','#e74a3b','#858796','#fd7e14','#6610f2','#20c997','#e83e8c'];
+
+        @if (Model.MyTeam != null && Model.TotalMatches > 0)
+        {
+            <text>
+            new Chart(document.getElementById('resultChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Ev Gal.','Dep. Gal.','Beraberlik','Mağlubiyet','Diğer'],
+                    datasets: [{
+                        data: [@Model.HomeWins, @Model.AwayWins, @Model.Draws, @Model.Losses, @Model.OtherResults],
+                        backgroundColor: ['#28a745','#17a2b8','#ffc107','#dc3545','#6c757d'],
+                        borderWidth: 2
+                    }]
+                },
+                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            });
+            </text>
+        }
+        @if (Model.MatchesByType.Any())
+        {
+            <text>
+            new Chart(document.getElementById('matchTypeChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: @Html.Raw(matchTypeLabels),
+                    datasets: [{
+                        data: @Html.Raw(matchTypeCounts),
+                        backgroundColor: chartColors,
+                        borderWidth: 2
+                    }]
+                },
+                options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+            });
+            </text>
+        }
+        @if (Model.TopScorers.Any())
+        {
+            <text>
+            new Chart(document.getElementById('scorersChart'), {
+                type: 'bar',
+                data: {
+                    labels: @Html.Raw(scorerNames),
+                    datasets: [{
+                        label: 'Gol',
+                        data: @Html.Raw(scorerGoals),
+                        backgroundColor: '#4e73df',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } },
+                    scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                }
+            });
+            </text>
+        }
+    </script>
+}

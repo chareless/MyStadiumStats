@@ -1,0 +1,77 @@
+@model IEnumerable<MyStadiumStats.Models.Coach>
+@{
+    ViewData["Title"] = "Teknik Direktörler";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">Teknik Direktörler</h2>
+</div>
+
+<p class="text-muted small">
+    Teknik direktörler maç eklenirken otomatik oluşturulur.
+</p>
+
+@if (!Model.Any())
+{
+    <div class="text-center py-5">
+        <p class="text-muted">Henüz teknik direktör kaydı yok. Maç eklerken teknik direktör girince otomatik oluşur.</p>
+    </div>
+}
+else
+{
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Ad Soyad</th>
+                        <th class="text-center">Ev Sahibi Maçlar</th>
+                        <th class="text-center">Deplasman Maçlar</th>
+                        <th class="text-center">Toplam Maç</th>
+                        <th class="text-center">Galibiyet</th>
+                        <th class="text-center">Beraberlik</th>
+                        <th class="text-center">Mağlubiyet</th>
+                        <th class="text-center">Galibiyet %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in Model)
+                    {
+                        var allMatches = c.HomeCoachMatches.Concat(c.AwayCoachMatches).ToList();
+                        int wins = 0, draws = 0, losses = 0;
+                        foreach (var m in allMatches)
+                        {
+                            bool isHome = m.HomeCoachId == c.Id;
+                            int myScore = isHome ? m.HomeScore : m.AwayScore;
+                            int oppScore = isHome ? m.AwayScore : m.HomeScore;
+                            if (myScore > oppScore) wins++;
+                            else if (myScore == oppScore) draws++;
+                            else losses++;
+                        }
+                        int total = allMatches.Count;
+                        double winRate = total > 0 ? Math.Round((double)wins / total * 100, 1) : 0;
+                        var winRateCss = winRate.ToString("F1", System.Globalization.CultureInfo.InvariantCulture);
+                        var barColor = winRate >= 60 ? "#28a745" : winRate >= 40 ? "#ffc107" : "#dc3545";
+                        <tr>
+                            <td><strong>@c.Name</strong></td>
+                            <td class="text-center text-muted">@c.HomeCoachMatches.Count</td>
+                            <td class="text-center text-muted">@c.AwayCoachMatches.Count</td>
+                            <td class="text-center"><span class="badge bg-secondary">@total</span></td>
+                            <td class="text-center"><span class="badge bg-success">@wins</span></td>
+                            <td class="text-center"><span class="badge bg-warning text-dark">@draws</span></td>
+                            <td class="text-center"><span class="badge bg-danger">@losses</span></td>
+                            <td style="min-width:130px;">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="flex-grow-1 bg-light rounded" style="height:8px;">
+                                        <div style="width:@winRateCss%; height:8px; border-radius:4px; background-color:@barColor;"></div>
+                                    </div>
+                                    <small class="text-nowrap">@winRate%</small>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

@@ -1,0 +1,45 @@
+@model MyStadiumStats.Models.Player
+@{
+    ViewData["Title"] = Model.Id == 0 ? "Yeni Oyuncu" : "Oyuncuyu Düzenle";
+    var teams = ViewBag.Teams as List<MyStadiumStats.Models.Team> ?? [];
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header fw-semibold">@ViewData["Title"]</div>
+            <div class="card-body">
+                <form asp-action="@(Model.Id == 0 ? "Create" : "Edit")" method="post">
+                    @Html.AntiForgeryToken()
+                    @if (Model.Id != 0) { <input type="hidden" asp-for="Id" /> }
+
+                    <div class="mb-3">
+                        <label asp-for="Name" class="form-label"></label>
+                        <input asp-for="Name" class="form-control" placeholder="örn. Mauro Icardi" />
+                        <span asp-validation-for="Name" class="text-danger small"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="TeamId" class="form-label">Takım</label>
+                        <select asp-for="TeamId" class="form-select">
+                            <option value="">-- Takım Seçin (Opsiyonel) --</option>
+                            @foreach (var t in teams)
+                            {
+                                <option value="@t.Id" selected="@(Model.TeamId == t.Id)">@t.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label asp-for="CurrentJerseyNumber" class="form-label"></label>
+                        <input asp-for="CurrentJerseyNumber" type="number" min="1" max="99"
+                               class="form-control" placeholder="örn. 9" style="max-width:120px;" />
+                        <div class="form-text">Forma numarası değişirse buradan güncelleyebilirsiniz. Geçmiş maçlardaki forma numaraları korunur.</div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Kaydet</button>
+                        <a asp-action="Index" class="btn btn-outline-secondary">İptal</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

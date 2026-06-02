@@ -1,0 +1,87 @@
+@model IEnumerable<MyStadiumStats.Models.Match>
+@{
+    ViewData["Title"] = "Maçlarım";
+    var types = Model.Select(m => m.MatchType).Distinct().OrderBy(t => t).ToList();
+    var filter = Context.Request.Query["type"].ToString();
+    var filtered = string.IsNullOrEmpty(filter) ? Model : Model.Where(m => m.MatchType == filter);
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">&#9917; Maçlarım</h2>
+    <a asp-action="Create" class="btn btn-success">+ Yeni Maç Ekle</a>
+</div>
+
+<!-- Filter Buttons -->
+@if (types.Any())
+{
+    <div class="mb-3 d-flex flex-wrap gap-2">
+        <a asp-action="Index" class="btn btn-sm @(string.IsNullOrEmpty(filter) ? "btn-primary" : "btn-outline-primary")">Tümü (@Model.Count())</a>
+        @foreach (var t in types)
+        {
+            int count = Model.Count(m => m.MatchType == t);
+            <a asp-action="Index" asp-route-type="@t"
+               class="btn btn-sm @(filter == t ? "btn-primary" : "btn-outline-secondary")">
+                @t (@count)
+            </a>
+        }
+    </div>
+}
+
+@if (!filtered.Any())
+{
+    <div class="text-center py-5">
+        <div class="display-4 text-muted">&#9917;</div>
+        <p class="text-muted mt-2">Henüz maç kaydedilmedi.</p>
+        <a asp-action="Create" class="btn btn-primary">İlk Maçı Ekle</a>
+    </div>
+}
+else
+{
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Tarih</th>
+                            <th>Ev Sahibi</th>
+                            <th class="text-center">Skor</th>
+                            <th>Deplasman</th>
+                            <th>Stadyum</th>
+                            <th>Tür</th>
+                            <th class="text-center">Goller</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var m in filtered)
+                        {
+                            <tr>
+                                <td class="text-nowrap">@m.Date.ToString("dd.MM.yyyy")</td>
+                                <td><strong>@m.HomeTeam.Name</strong></td>
+                                <td class="text-center">
+                                    <span class="badge bg-dark fs-6 px-3">@m.HomeScore - @m.AwayScore</span>
+                                </td>
+                                <td><strong>@m.AwayTeam.Name</strong></td>
+                                <td class="text-muted small">@m.Stadium.Name</td>
+                                <td><span class="badge bg-secondary">@m.MatchType</span></td>
+                                <td class="text-center">
+                                    <span class="badge bg-info text-dark">@m.Goals.Count gol</span>
+                                </td>
+                                <td class="text-nowrap">
+                                    <a asp-action="Details" asp-route-id="@m.Id" class="btn btn-sm btn-outline-primary">Detay</a>
+                                    <a asp-action="Edit" asp-route-id="@m.Id" class="btn btn-sm btn-outline-secondary">Düzenle</a>
+                                    <form asp-action="Delete" asp-route-id="@m.Id" method="post" class="d-inline"
+                                          onsubmit="return confirm('Bu maçı silmek istediğinize emin misiniz?')">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Sil</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
