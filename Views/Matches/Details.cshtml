@@ -7,6 +7,43 @@
     var awayGoals = Model.Goals.Where(g => !g.IsOwnGoal && g.Player.TeamId == Model.AwayTeamId)
                                .Concat(Model.Goals.Where(g => g.IsOwnGoal && g.Player.TeamId == Model.HomeTeamId))
                                .OrderBy(g => g.Minute).ToList();
+    
+    // Determine result based on MyTeam
+    var myTeamId = (int?)ViewData["MyTeamId"];
+    string result;
+    string resultBadge;
+    
+    if (myTeamId.HasValue && (Model.HomeTeamId == myTeamId || Model.AwayTeamId == myTeamId))
+    {
+        // MyTeam is playing
+        bool isMyTeamHome = Model.HomeTeamId == myTeamId;
+        int myScore = isMyTeamHome ? Model.HomeScore : Model.AwayScore;
+        int opponentScore = isMyTeamHome ? Model.AwayScore : Model.HomeScore;
+        
+        if (myScore > opponentScore)
+        {
+            result = "GALİBİYET";
+            resultBadge = "bg-success";
+        }
+        else if (myScore < opponentScore)
+        {
+            result = "MAĞLUBİYET";
+            resultBadge = "bg-danger";
+        }
+        else
+        {
+            result = "BERABERLİK";
+            resultBadge = "bg-warning text-dark";
+        }
+    }
+    else
+    {
+        // MyTeam is not playing or not set - show generic result
+        result = Model.HomeScore > Model.AwayScore ? $"{Model.HomeTeam.Name} Kazandı" :
+                        Model.AwayScore > Model.HomeScore ? $"{Model.AwayTeam.Name} Kazandı" : "Beraberlik";
+        resultBadge = Model.HomeScore > Model.AwayScore ? "bg-success" :
+                                 Model.AwayScore > Model.HomeScore ? "bg-danger" : "bg-warning text-dark";
+    }
 }
 
 <nav aria-label="breadcrumb" class="mb-3">
@@ -41,12 +78,6 @@
                 <div class="display-4 fw-bold bg-dark text-white rounded px-3 py-1">
                     @Model.HomeScore <span class="text-secondary">-</span> @Model.AwayScore
                 </div>
-                @{
-                    string result = Model.HomeScore > Model.AwayScore ? $"{Model.HomeTeam.Name} Kazandı" :
-                                    Model.AwayScore > Model.HomeScore ? $"{Model.AwayTeam.Name} Kazandı" : "Beraberlik";
-                    string resultBadge = Model.HomeScore > Model.AwayScore ? "bg-success" :
-                                         Model.AwayScore > Model.HomeScore ? "bg-danger" : "bg-warning text-dark";
-                }
                 <div class="mt-2"><span class="badge @resultBadge fs-6">@result</span></div>
             </div>
             <div class="text-start" style="min-width:180px;">

@@ -1,0 +1,61 @@
+@{
+    ViewData["Title"] = "Tüm Veriyi Sil";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-danger shadow-lg">
+                <div class="card-header bg-danger text-white fw-bold">
+                    ⚠️ DİKKAT: Tüm Verileri Sil
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger" role="alert">
+                        <strong>Bu işlem geri alınamaz!</strong>
+                        <p class="mb-0 mt-2">Aşağıdaki veriler kalıcı olarak silinecektir:</p>
+                        <ul class="mt-2 mb-0">
+                            <li>Tüm Maçlar</li>
+                            <li>Tüm Goller</li>
+                            <li>Tüm Oyuncular</li>
+                            <li>Tüm Teknik Direktörler</li>
+                            <li>Tüm Stadyumlar</li>
+                            <li>Takım İşaretlemeleri (Benim Takımım, Takip Ettiklerim)</li>
+                        </ul>
+                    </div>
+
+                    <form method="post" class="mt-4">
+                        @Html.AntiForgeryToken()
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Silme işlemini onaylamak için aşağıya <code>SILI</code> yazın:</label>
+                            <input type="text" name="confirm" class="form-control form-control-lg border-danger" 
+                                   placeholder="SILI yazınız..." autocomplete="off" />
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-danger btn-lg" id="deleteBtn" disabled>
+                                Tüm Verileri Sil
+                            </button>
+                            <a href="@Url.Action("Index")" class="btn btn-secondary btn-lg">
+                                İptal
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+document.querySelector('input[name="confirm"]').addEventListener('input', function() {
+    const deleteBtn = document.getElementById('deleteBtn');
+    deleteBtn.disabled = this.value !== 'SILI';
+    
+    if (this.value === 'SILI') {
+        deleteBtn.classList.add('btn-danger');
+    }
+});
+</script>
+}

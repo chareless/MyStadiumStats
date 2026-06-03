@@ -1,0 +1,171 @@
+@model List<MyStadiumStats.Models.ViewModels.PlayerGoalStat>
+@{
+    ViewData["Title"] = "Golcü İstatistikleri";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-0">⚽ @(ViewData["TeamName"] != null ? ViewData["TeamName"] + " - " : "")Golcü İstatistikleri</h2>
+        <small class="text-muted">@(ViewData["TeamName"] != null ? "Takım golcüleri" : "Tüm maçlarda atılan gollere göre sıralı")</small>
+    </div>
+    <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">← Dashboard</a>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="text-center py-5">
+        <div class="display-1 text-muted">⚽</div>
+        <h3 class="text-muted mt-3">Gol istatistikleri yok</h3>
+        <p class="text-muted">Henüz maç kaydedilmediği için gol bilgisi bulunmamaktadır.</p>
+    </div>
+}
+else
+{
+    <style>
+        .scorer-bar { height: 10px; border-radius: 4px; }
+        .scorer-bar-danger  { background-color: #dc3545; }
+        .scorer-bar-warning { background-color: #ffc107; }
+        .scorer-bar-info    { background-color: #0dcaf0; }
+        .scorer-bar-muted   { background-color: #6c757d; }
+        tr.scorer-main { cursor: pointer; }
+        tr.scorer-main:hover { background-color: rgba(0,0,0,.04); }
+        tr.scorer-detail td { background-color: rgba(0,0,0,.02); font-size: .875rem; }
+        body.dark-mode tr.scorer-detail td { background-color: rgba(255,255,255,.04); }
+    </style>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width:40px;">#</th>
+                            <th>Oyuncu</th>
+                            <th class="text-center">Takım</th>
+                            <th class="text-center">Toplam Gol</th>
+                            <th class="text-center">Penaltı</th>
+                            <th class="text-center">Maç Başı Ort.</th>
+                            <th class="text-center" style="min-width:160px;">Tüm Gollerdeki Pay</th>
+                            <th style="width:30px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (int i = 0; i < Model.Count; i++)
+                        {
+                            var scorer = Model[i];
+                            var collapseId = $"scorer-detail-all-{i}";
+                            var hasBreakdown = scorer.Breakdown.Count > 1 ||
+                                (scorer.Breakdown.Count == 1 && (scorer.Breakdown[0].TeamName != scorer.TeamName || scorer.Breakdown[0].JerseyNumber.HasValue));
+                            var pct = scorer.GoalPercentage;
+                            var barClass = pct >= 50 ? "scorer-bar-danger" : pct >= 25 ? "scorer-bar-warning" : pct >= 10 ? "scorer-bar-info" : "scorer-bar-muted";
+                            var pctCss = pct.ToString("F1", System.Globalization.CultureInfo.InvariantCulture);
+                            <tr class="scorer-main @(hasBreakdown ? "scorer-expandable" : "")" data-detail-target="@collapseId">
+                                <td class="text-muted">@(i + 1)</td>
+                                <td><strong>@scorer.PlayerName</strong></td>
+                                <td class="text-center"><span class="text-muted small">@(scorer.TeamName ?? "-")</span></td>
+                                <td class="text-center">
+                                    <a asp-controller="Matches" asp-action="Index" asp-route-playerId="@scorer.PlayerId" class="text-decoration-none">
+                                        <span class="badge bg-success fs-6 px-3" style="cursor:pointer;">@scorer.TotalGoals</span>
+                                    </a>
+                                </td>
+                                <td class="text-center">
+                                    @if (scorer.PenaltyGoals > 0)
+                                    {
+                                        <a asp-controller="Matches" asp-action="Index" asp-route-playerId="@scorer.PlayerId" asp-route-isPenalty="true" class="text-decoration-none">
+                                            <span class="badge bg-warning text-dark" style="cursor:pointer;">@scorer.PenaltyGoals</span>
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-secondary">@scorer.AvgGoalsPerMatch</span>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="flex-grow-1 bg-light rounded" style="height:10px;">
+                                            <div class="scorer-bar @barClass" style="width:@pctCss%;"></div>
+                                        </div>
+                                        <small class="text-nowrap">@pct%</small>
+                                    </div>
+                                </td>
+                                <td class="text-center text-muted small">
+                                    @if (hasBreakdown) { <span class="chevron-icon">▼</span> }
+                                </td>
+                            </tr>
+                            @if (hasBreakdown)
+                            {
+                                <tr class="scorer-detail d-none" id="@collapseId">
+                                    <td colspan="8" class="p-0">
+                                        <table class="table table-sm mb-0">
+                                            <thead>
+                                                <tr class="table-light">
+                                                    <th style="width:40px;padding-left:2.5rem;"></th>
+                                                    <th>Takım</th>
+                                                    <th class="text-center">Forma No</th>
+                                                    <th class="text-center">Gol</th>
+                                                    <th class="text-center">Penaltı</th>
+                                                    <th></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var bd in scorer.Breakdown)
+                                                {
+                                                    <tr>
+                                                        <td style="padding-left:2.5rem;"></td>
+                                                        <td class="text-muted">@(bd.TeamName ?? "-")</td>
+                                                        <td class="text-center">
+                                                            @if (bd.JerseyNumber.HasValue)
+                                                            {
+                                                                <span class="badge bg-secondary">#@bd.JerseyNumber</span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="text-muted">-</span>
+                                                            }
+                                                        </td>
+                                                        <td class="text-center"><span class="badge bg-success">@bd.Goals</span></td>
+                                                        <td class="text-center">
+                                                            @if (bd.PenaltyGoals > 0)
+                                                            {
+                                                                <span class="badge bg-warning text-dark">@bd.PenaltyGoals</span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="text-muted">-</span>
+                                                            }
+                                                        </td>
+                                                        <td></td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        // Golcü satırı toggle
+        document.querySelectorAll('tr.scorer-expandable').forEach(function(tr) {
+            tr.addEventListener('click', function() {
+                var targetId = this.getAttribute('data-detail-target');
+                var detailRow = document.getElementById(targetId);
+                if (!detailRow) return;
+                var isHidden = detailRow.classList.contains('d-none');
+                detailRow.classList.toggle('d-none', !isHidden);
+                var chevron = this.querySelector('.chevron-icon');
+                if (chevron) chevron.textContent = isHidden ? '▲' : '▼';
+            });
+        });
+    </script>
+}

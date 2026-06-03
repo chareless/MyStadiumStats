@@ -21,7 +21,7 @@
 <form id="matchForm" asp-action="@(isEdit ? "Edit" : "Create")" method="post">
     @Html.AntiForgeryToken()
     @if (isEdit) { <input type="hidden" asp-for="Id" /> }
-    <input type="hidden" asp-for="GoalsJson" id="GoalsJson" />
+    <input type="hidden" asp-for="GoalsJson" id="GoalsJson" data-goals="@Html.Raw(System.Net.WebUtility.HtmlEncode(Model.GoalsJson))" />
 
     <div class="card shadow-sm mb-3">
         <div class="card-header fw-semibold">Maç Bilgileri</div>
@@ -174,11 +174,31 @@ const players = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
 ));
 
 let goals = [];
-try { 
-    goals = JSON.parse(document.getElementById('GoalsJson').value || '[]'); 
-} catch(e) { 
-    console.error("JSON parse hatası:", e); 
+
+// Initialize goals from hidden input - with better error handling
+function initializeGoals() {
+    const goalsJsonInput = document.getElementById('GoalsJson');
+    if (!goalsJsonInput) {
+        console.warn("GoalsJson input not found");
+        return;
+    }
+    
+    // Try value attribute first, then data-goals attribute
+    let jsonValue = (goalsJsonInput.value || '').trim();
+    if (!jsonValue && goalsJsonInput.dataset.goals) {
+        jsonValue = goalsJsonInput.dataset.goals;
+    }
+    
+    try {
+        goals = jsonValue ? JSON.parse(jsonValue) : [];
+    } catch(e) { 
+        console.error("JSON parse error:", e, "Raw value:", jsonValue);
+        goals = [];
+    }
 }
+
+// Initialize on page load
+initializeGoals();
 
 function renderGoalRows() {
     const tbody = document.getElementById('goalRows');

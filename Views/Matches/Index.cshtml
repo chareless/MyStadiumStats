@@ -1,38 +1,100 @@
 @model IEnumerable<MyStadiumStats.Models.Match>
+@using MyStadiumStats.Models
 @{
     ViewData["Title"] = "Maçlarım";
-    var types = Model.Select(m => m.MatchType).Distinct().OrderBy(t => t).ToList();
-    var filter = Context.Request.Query["type"].ToString();
-    var filtered = string.IsNullOrEmpty(filter) ? Model : Model.Where(m => m.MatchType == filter);
+    var stadiums = ViewData["Stadiums"] as List<string> ?? new();
+    var teams = ViewData["Teams"] as List<Team> ?? new();
+    var scorers = ViewData["Scorers"] as List<Player> ?? new();
+    var currentPlayerId = ViewData["CurrentPlayerId"] as int?;
+    var currentTeamId = ViewData["CurrentTeamId"] as int?;
+    var currentMatchType = ViewData["CurrentMatchType"] as string;
+    var currentResult = ViewData["CurrentResult"] as string;
+    var currentStadium = ViewData["CurrentStadium"] as string;
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0">&#9917; Maçlarım</h2>
+    <h2 class="mb-0">⚽ Maçlarım</h2>
     <a asp-action="Create" class="btn btn-success">+ Yeni Maç Ekle</a>
 </div>
 
-<!-- Filter Buttons -->
-@if (types.Any())
-{
-    <div class="mb-3 d-flex flex-wrap gap-2">
-        <a asp-action="Index" class="btn btn-sm @(string.IsNullOrEmpty(filter) ? "btn-primary" : "btn-outline-primary")">Tümü (@Model.Count())</a>
-        @foreach (var t in types)
-        {
-            int count = Model.Count(m => m.MatchType == t);
-            <a asp-action="Index" asp-route-type="@t"
-               class="btn btn-sm @(filter == t ? "btn-primary" : "btn-outline-secondary")">
-                @t (@count)
-            </a>
-        }
-    </div>
-}
+<!-- Filters -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h6 class="card-title fw-bold mb-3">🔍 Filtreler</h6>
+        <form asp-action="Index" method="get" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Stadyum</label>
+                <select name="stadium" class="form-select">
+                    <option value="">-- Tümü --</option>
+                    @foreach (var s in stadiums)
+                    {
+                        <option value="@s" selected="@(currentStadium == s)">@s</option>
+                    }
+                </select>
+            </div>
 
-@if (!filtered.Any())
+            <div class="col-md-4">
+                <label class="form-label">Takım</label>
+                <select name="teamId" class="form-select">
+                    <option value="">-- Tümü --</option>
+                    @foreach (var t in teams)
+                    {
+                        <option value="@t.Id" selected="@(currentTeamId == t.Id)">@t.Name</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Gol Atan Oyuncu</label>
+                <select name="playerId" class="form-select">
+                    <option value="">-- Tümü --</option>
+                    @foreach (var p in scorers)
+                    {
+                        <option value="@p.Id" selected="@(currentPlayerId == p.Id)">@p.Name</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Sonuç</label>
+                <select name="result" class="form-select">
+                    <option value="">-- Tümü --</option>
+                    <option value="win" selected="@(currentResult == "win")">🏆 Galibiyet</option>
+                    <option value="draw" selected="@(currentResult == "draw")">🤝 Beraberlik</option>
+                    <option value="loss" selected="@(currentResult == "loss")">❌ Mağlubiyet</option>
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Maç Türü</label>
+                <select name="matchType" class="form-select">
+                    <option value="">-- Tümü --</option>
+                    @{
+                        var types = Model.Select(m => m.MatchType).Distinct().OrderBy(t => t).ToList();
+                        @foreach (var t in types)
+                        {
+                            <option value="@t" selected="@(currentMatchType == t)">@t</option>
+                        }
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <div class="d-flex gap-2 pt-4">
+                    <button type="submit" class="btn btn-primary flex-grow-1">🔎 Filtrele</button>
+                    <a asp-action="Index" class="btn btn-outline-secondary">↺ Temizle</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (!Model.Any())
 {
     <div class="text-center py-5">
-        <div class="display-4 text-muted">&#9917;</div>
-        <p class="text-muted mt-2">Henüz maç kaydedilmedi.</p>
-        <a asp-action="Create" class="btn btn-primary">İlk Maçı Ekle</a>
+        <div class="display-4 text-muted">⚽</div>
+        <p class="text-muted mt-2">Filtrelere uygun maç bulunamadı.</p>
+        <a asp-action="Index" class="btn btn-outline-secondary">↺ Filtreleri Temizle</a>
     </div>
 }
 else
@@ -49,13 +111,46 @@ else
                             <th>Deplasman</th>
                             <th>Stadyum</th>
                             <th>Tür</th>
+                            <th class="text-center">Sonuç</th>
                             <th class="text-center">Goller</th>
                             <th></th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var m in filtered)
+                        @foreach (var m in Model)
                         {
+                            var myTeamId = ViewData["MyTeamId"] as int?;
+                            string resultBadge = "Bej";
+                            string resultClass = "bg-secondary";
+                            
+                            if (myTeamId.HasValue)
+                            {
+                                bool isHome = m.HomeTeamId == myTeamId;
+                                bool isAway = m.AwayTeamId == myTeamId;
+                                
+                                if (isHome || isAway)
+                                {
+                                    int myScore = isHome ? m.HomeScore : m.AwayScore;
+                                    int opponentScore = isHome ? m.AwayScore : m.HomeScore;
+                                    
+                                    if (myScore > opponentScore)
+                                    {
+                                        resultBadge = "🏆 Galibiyet";
+                                        resultClass = "bg-success";
+                                    }
+                                    else if (myScore < opponentScore)
+                                    {
+                                        resultBadge = "❌ Mağlubiyet";
+                                        resultClass = "bg-danger";
+                                    }
+                                    else
+                                    {
+                                        resultBadge = "🤝 Beraberlik";
+                                        resultClass = "bg-warning text-dark";
+                                    }
+                                }
+                            }
+                            
                             <tr>
                                 <td class="text-nowrap">@m.Date.ToString("dd.MM.yyyy")</td>
                                 <td><strong>@m.HomeTeam.Name</strong></td>
@@ -65,6 +160,9 @@ else
                                 <td><strong>@m.AwayTeam.Name</strong></td>
                                 <td class="text-muted small">@m.Stadium.Name</td>
                                 <td><span class="badge bg-secondary">@m.MatchType</span></td>
+                                <td class="text-center">
+                                    <span class="badge @resultClass">@resultBadge</span>
+                                </td>
                                 <td class="text-center">
                                     <span class="badge bg-info text-dark">@m.Goals.Count gol</span>
                                 </td>

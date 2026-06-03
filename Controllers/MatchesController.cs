@@ -12,23 +12,140 @@ public class MatchesController : Controller
     private readonly AppDbContext _db;
     public MatchesController(AppDbContext db) => _db = db;
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(int? playerId = null, bool? isPenalty = null, string? matchType = null, 
+        string? result = null, string? stadium = null, int? teamId = null)
     {
-        var matches = await _db.Matches
+        var myTeam = await _db.Teams.FirstOrDefaultAsync(t => t.IsMyTeam);
+        var query = _db.Matches
             .Include(m => m.HomeTeam).Include(m => m.AwayTeam)
             .Include(m => m.Stadium).Include(m => m.Goals)
-            .OrderByDescending(m => m.Date).ToListAsync();
+                .ThenInclude(g => g.Player).ThenInclude(p => p.Team)
+            .AsQueryable();
+
+        // Filter by team (home or away)
+        if (teamId.HasValue)
+        {
+            query = query.Where(m => m.HomeTeamId == teamId || m.AwayTeamId == teamId);
+        }
+
+        // Filter by player's goals and/or penalty
+        if (playerId.HasValue)
+        {
+            if (isPenalty.HasValue && isPenalty.Value)
+            {
+                // Player scored a penalty
+                query = query.Where(m => m.Goals.Any(g => g.PlayerId == playerId && g.IsPenalty && !g.IsOwnGoal));
+            }
+            else if (isPenalty.HasValue && !isPenalty.Value)
+            {
+                // Player scored non-penalty
+                query = query.Where(m => m.Goals.Any(g => g.PlayerId == playerId && !g.IsPenalty && !g.IsOwnGoal));
+            }
+            else
+            {
+                // Player scored any goal
+                query = query.Where(m => m.Goals.Any(g => g.PlayerId == playerId && !g.IsOwnGoal));
+            }
+        }
+        else if (isPenalty.HasValue)
+        {
+            if (isPenalty.Value)
+                query = query.Where(m => m.Goals.Any(g => g.IsPenalty));
+            else
+                query = query.Where(m => !m.Goals.Any(g => g.IsPenalty));
+        }
+
+        // Filter by match type
+        if (!string.IsNullOrEmpty(matchType))
+        {
+            query = query.Where(m => m.MatchType == matchType);
+        }
+
+        // Filter by result (for myTeam)
+        if (myTeam != null && !string.IsNullOrEmpty(result))
+        {
+            query = query.Where(m => 
+                m.HomeTeamId == myTeam.Id || m.AwayTeamId == myTeam.Id);
+
+            if (result == "hw") // home win
+                query = query.Where(m => m.HomeTeamId == myTeam.Id && m.HomeScore > m.AwayScore);
+            else if (result == "aw") // away win
+                query = query.Where(m => m.AwayTeamId == myTeam.Id && m.AwayScore > m.HomeScore);
+            else if (result == "hd") // home draw
+                query = query.Where(m => m.HomeTeamId == myTeam.Id && m.HomeScore == m.AwayScore);
+            else if (result == "ad") // away draw
+                query = query.Where(m => m.AwayTeamId == myTeam.Id && m.HomeScore == m.AwayScore);
+            else if (result == "hl") // home loss
+                query = query.Where(m => m.HomeTeamId == myTeam.Id && m.HomeScore < m.AwayScore);
+            else if (result == "al") // away loss
+                query = query.Where(m => m.AwayTeamId == myTeam.Id && m.AwayScore < m.HomeScore);
+            else if (result == "win") // any win (generic for stadium filtering)
+                query = query.Where(m => 
+                    (m.HomeTeamId == myTeam.Id && m.HomeScore > m.AwayScore) ||
+                    (m.AwayTeamId == myTeam.Id && m.AwayScore > m.HomeScore)
+                );
+            else if (result == "draw") // any draw (generic for stadium filtering)
+                query = query.Where(m => 
+                    (m.HomeTeamId == myTeam.Id || m.AwayTeamId == myTeam.Id) &&
+                    m.HomeScore == m.AwayScore
+                );
+            else if (result == "loss") // any loss (generic for stadium filtering)
+                query = query.Where(m => 
+                    (m.HomeTeamId == myTeam.Id && m.HomeScore < m.AwayScore) ||
+                    (m.AwayTeamId == myTeam.Id && m.AwayScore < m.HomeScore)
+                );
+        }
+
+        // Filter by stadium name
+        if (!string.IsNullOrEmpty(stadium))
+        {
+            query = query.Where(m => m.Stadium.Name == stadium);
+        }
+
+        var matches = await query.OrderByDescending(m => m.Date).ToListAsync();
+
+        // Prepare filter data for view
+        var allMatches = await _db.Matches.Include(m => m.Stadium).Include(m => m.HomeTeam)
+            .Include(m => m.AwayTeam).Include(m => m.Goals).ThenInclude(g => g.Player).ToListAsync();
+
+        var stadiums = allMatches.Select(m => m.Stadium.Name).Distinct().OrderBy(s => s).ToList();
+        var teams = new List<Team>();
+        teams.AddRange(allMatches.Select(m => m.HomeTeam).Distinct());
+        teams.AddRange(allMatches.Select(m => m.AwayTeam).Distinct());
+        teams = teams.Distinct().OrderBy(t => t.Name).ToList();
+
+        var scorers = allMatches.SelectMany(m => m.Goals)
+            .Where(g => !g.IsOwnGoal)
+            .Select(g => g.Player)
+            .Distinct()
+            .OrderBy(p => p.Name)
+            .ToList();
+
+        ViewData["Stadiums"] = stadiums;
+        ViewData["Teams"] = teams;
+        ViewData["Scorers"] = scorers;
+        ViewData["MyTeamId"] = myTeam?.Id;
+        ViewData["CurrentPlayerId"] = playerId;
+        ViewData["CurrentTeamId"] = teamId;
+        ViewData["CurrentMatchType"] = matchType;
+        ViewData["CurrentResult"] = result;
+        ViewData["CurrentStadium"] = stadium;
+
         return View(matches);
     }
 
     public async Task<IActionResult> Details(int id)
     {
+        var myTeam = await _db.Teams.FirstOrDefaultAsync(t => t.IsMyTeam);
         var match = await _db.Matches
             .Include(m => m.HomeTeam).Include(m => m.AwayTeam)
             .Include(m => m.Stadium).Include(m => m.HomeCoach).Include(m => m.AwayCoach)
             .Include(m => m.Goals).ThenInclude(g => g.Player).ThenInclude(p => p.Team)
             .FirstOrDefaultAsync(m => m.Id == id);
         if (match == null) return NotFound();
+        
+        ViewData["MyTeamId"] = myTeam?.Id;
+        
         return View(match);
     }
 
@@ -88,6 +205,7 @@ public class MatchesController : Controller
             TeamSide    = g.Player.TeamId == match.HomeTeamId ? "home" : "away"
         }).ToList();
 
+        var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         var vm = new MatchFormViewModel
         {
             Id = match.Id, Date = match.Date,
@@ -97,7 +215,7 @@ public class MatchesController : Controller
             MatchType    = match.MatchType,
             HomeCoachName = match.HomeCoach?.Name, AwayCoachName = match.AwayCoach?.Name,
             Notes        = match.Notes,
-            GoalsJson    = JsonSerializer.Serialize(existingGoals)
+            GoalsJson    = JsonSerializer.Serialize(existingGoals, jsonOptions)
         };
         await PopulateFormViewModel(vm);
         return View("Create", vm);
