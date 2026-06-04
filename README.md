@@ -65,14 +65,16 @@ Futbol/Spor maçlarının kapsamlı istatistiklerini takip etmek için tasarlanm
 - Gol dakikası kaydı
 
 #### 🏟️ Stadyum Yönetimi
-- Stadyum profili oluştur (Ad, şehir, ülke)
-- Stadyumdaki maçları göster
+- Tüm stadyumları listele
+- Stadyumdaki maçları görüntüle
 - Stadyum istatistiklerini analiz et
+- ℹ️ **Not**: Stadyum yönetim sayfasında doğrudan oluştur/düzenle/sil yoktur; maç eklerken yeni stadyum otomatik oluşturulur
 
 #### 👨‍🏫 Antrenör Yönetimi
-- Antrenör profili oluştur
-- Antrenörleri maçlara ata
+- Tüm antrenörleri listele
+- Antrenörlerin yer aldığı maçları görüntüle
 - Antrenör istatistiklerini takip et
+- ℹ️ **Not**: Antrenör yönetim sayfasında doğrudan oluştur/düzenle/sil yoktur; maç eklerken yeni antrenör otomatik oluşturulur
 
 ### 🔍 Filtreleme & Arama
 - Sonuçlara göre filtrele (Galip, Beraberlik, Yenilgi)
@@ -171,7 +173,7 @@ Veritabanı otomatik olarak uygulamanın ilk başlatılmasında oluşturulur ve 
 
 ### Adım 1: Projeyi İndir
 ```bash
-git clone https://github.com/your-username/MyStadiumStats.git
+git clone https://github.com/chareless/MyStadiumStats.git
 cd MyStadiumStats
 ```
 
@@ -217,11 +219,14 @@ https://localhost:5001
 3. **"Benim Takımım"** kutusunu işaretle
 4. **Kaydet**'e tıkla
 
-#### 3️⃣ Stadyum Ekle
-1. **Stadyumlar** menüsüne git
-2. **Yeni Stadyum Ekle** butonuna tıkla
-3. Stadyum adı, şehir ve ülke bilgisini gir
-4. **Kaydet**'e tıkla
+#### 3️⃣ Stadyum & Antrenör Ekleme
+Stadyum ve antrenörleri direkt olarak "Stadyumlar" veya "Teknik Direktörler" sayfasından oluşturmak mümkün değildir, ancak **maç eklerken otomatik olarak oluşturulabilir**:
+
+**Maç ekleme sırasında**:
+1. **Maçlar → Yeni Maç Ekle** sayfasına git
+2. Stadyum adını yaz (yeni bir stadyum yazarsan otomatik oluşturulur)
+3. Teknik direktör adlarını yaz (yeni antrenör yazarsan otomatik oluşturulur)
+4. Maç kaydedildiğinde stadyum ve antrenörler de veritabanına eklenir
 
 #### 4️⃣ Oyuncu Ekle
 1. **Oyuncular** menüsüne git
@@ -385,6 +390,26 @@ dotnet ef database drop -f
 dotnet ef database update
 ```
 
+### Stadyum ve Antrenör Ekleme (Veritabanı Üzerinden)
+
+Stadyum ve antrenörleri maç eklemeden doğrudan oluşturmak istiyorsanız, **DB Browser for SQLite** kullanarak doğrudan veritabanıya veri ekleyebilirsiniz:
+
+**Stadyum Ekleme**:
+```sql
+INSERT INTO Stadiums (Name, City, Country) 
+VALUES ('Adana Stadyumu', 'Adana', 'Türkiye');
+```
+
+**Antrenör Ekleme**:
+```sql
+INSERT INTO Coaches (Name) 
+VALUES ('Okan Buruk');
+```
+
+Detaylı talimatlar için [SQLite Sorgulama](#🗄️-sqlite-veritabanını-sorgulamak) bölümüne bakın.
+
+> **İpucu**: Çoğu durumda maç eklerken stadyum ve antrenörleri otomatik olarak oluşturmak daha pratiktir!
+
 ---
 
 ## 🐛 Sorun Giderme
@@ -413,7 +438,19 @@ Bu proje MIT Lisansı altında lisanslanmıştır. Detaylar için [LICENSE](LICE
 
 ## 👨‍💻 Geliştirme Notları
 
+### ℹ️ Bilinen Sınırlamalar & Özellikler
+
+#### Stadyum ve Antrenör Ekleme
+- **Stadyum ve Antrenörleri Ekleme**: Maç eklerken otomatik olarak oluşturulur
+  - Maç oluştururken stadyum adını yazın → Yoksa otomatik oluşturulur
+  - Teknik direktör adını yazın → Yoksa otomatik oluşturulur
+- **Doğrudan Yönetim Sayfası**: Stadyumlar ve Antrenörler sayfalarında Create/Edit/Delete UI henüz yoktur
+
+> Alternatif olarak, [Stadyum ve Antrenör Ekleme (Veritabanı Üzerinden)](#stadyum-ve-antrenör-ekleme-veritabanı-üzerinden) bölümündeki SQL komutlarıyla doğrudan veritabanıya veri ekleyebilirsiniz.
+
 ### Gelecek Sürümlerde Planlanan Özellikler
+- [ ] Stadyum Yönetimi UI (Create, Edit, Delete)
+- [ ] Antrenör Yönetimi UI (Create, Edit, Delete)
 - [ ] Kullanıcı hesapları ve kimlik doğrulama
 - [ ] Bulut senkronizasyonu
 - [ ] Mobil uygulama
@@ -432,5 +469,6 @@ Sorular veya öneriler için lütfen bir Issue açın veya bizimle iletişime ge
 
 **Versiyon**: 1.0.0  
 **Son Güncelleme**: 4 Haziran 2026  
-**Durum**: ✅ Aktif Geliştirme
+**Durum**: ✅ Aktif Geliştirme  
+**GitHub**: https://github.com/chareless/MyStadiumStats
 
