@@ -23,6 +23,9 @@ Futbol/Spor maçlarının kapsamlı istatistiklerini takip etmek için tasarlanm
 - Maç istatistiklerini filtrelenebilir şekilde görüntüleme
 - Takım, oyuncu, stadyum ve antrenör bilgilerini merkezi yönetme
 
+### 🤖 Geliştirim Süreci
+Bu proje **tamamen Yapay Zeka (AI)** tarafından tasarlanmış, geliştirilmiş ve kodlanmıştır. Mimarisi, tüm özellikleri, veri modelleri, controller'ları, view'ları ve hatta veritabanı migrasyonları AI asistanı tarafından oluşturulmuştur.
+
 ---
 
 ## ✨ Özellikler
@@ -45,10 +48,10 @@ Futbol/Spor maçlarının kapsamlı istatistiklerini takip etmek için tasarlanm
 - Takıma ait oyuncu ve maçları otomatik görüntüle
 
 #### ⚽ Oyuncu Yönetimi
-- Oyuncu profili oluştur (Ad, takım, forma numarası)
-- Oyuncu istatistikleri ver
-- Oyuncu performans grafiğini görüntüle
-- Takım oyuncularını listele
+- Oyuncu profili oluştur (Ad, forma numarası)
+- Oyuncu istatistiklerini gör
+- Oyuncu performans grafiğini gör
+- Oyuncunun oynadığı tüm takımları gör
 
 #### 🎯 Maç Kayıt Sistemi
 - Yeni maç ekle (ev sahibi/deplasman takımı seçimi)
@@ -60,9 +63,11 @@ Futbol/Spor maçlarının kapsamlı istatistiklerini takip etmek için tasarlanm
 
 #### ⚾ Gol Kaydı
 - Maç başına gol ekle
-- Gol atanı ve asistanı belirle
-- Penaltı golu işaretle
-- Gol dakikası kaydı
+- Gol atan oyuncuyu belirle
+- Golın atıldığı takım ve forma numurasını kaydet
+- Penaltı golunu işaretle
+- Kendi kalesi golünü işaretle
+- Gol dakikasını kaydet
 
 #### 🏟️ Stadyum Yönetimi
 - Tüm stadyumları listele
@@ -122,10 +127,23 @@ MyStadiumStats/
 │   └── CoachesController.cs  (Antrenör yönetimi)
 ├── Models/               # Veri modelleri
 │   ├── Team.cs
-│   ├── Player.cs
+│   ├── Player.cs           (Takımdan bağımsız oyuncu modeli)
 │   ├── Match.cs
-│   ├── Goal.cs
+│   ├── Goal.cs             (TeamIdAtMatch ile gol atılan takımı kaydeder)
 │   ├── Stadium.cs
+│   ├── Coach.cs
+│   └── ViewModels/         (Görünüm modelleri)
+│       ├── DashboardViewModel.cs
+│       └── MatchFormViewModel.cs
+├── Views/               # Görünüm şablonları
+│   ├── Shared/         (Ortak şablonlar)
+│   └── [Controller]/   (Controller başına klasörler)
+├── Data/                # Veritabanı bağlamı ve konfigürasyon
+│   └── AppDbContext.cs
+├── Migrations/          # EF Core veritabanı migrasyonları
+│   └── [Migration files]
+└── wwwroot/            # Statik dosyalar (CSS, JS, görseller)
+```
 │   ├── Coach.cs
 │   └── ViewModels/
 │       ├── DashboardViewModel.cs   (Dashboard veri yapısı)
@@ -313,9 +331,9 @@ IsFollowed (Takip Et) - Boolean
 ```
 Id (PK)
 Name (Ad Soyad) - Required
-TeamId (FK) - Team tablosuna bağlı
-CurrentJerseyNumber (Forma Numarası)
+CurrentJerseyNumber (Forma Numarası) - nullable
 ```
+**Not**: Oyuncular takımdan bağımsızdır. Oyuncunun oynadığı takım bilgisi Goals.TeamIdAtMatch üzerinden saklanır, bu sayede aynı oyuncu birden fazla takımda gol atabilir.
 
 #### 🏆 Matches (Maçlar)
 ```
@@ -336,10 +354,13 @@ AwayCoachId (FK) - Deplasman Antrenörü
 Id (PK)
 MatchId (FK) - Maç
 PlayerId (FK) - Oyuncu
+TeamIdAtMatch (FK) - Gol Atılan Takım
 Minute (Dakika)
+IsOwnGoal (Kendi Kalesi Golü Mü?) - Boolean
 IsPenalty (Penaltı Mı?) - Boolean
-AssistPlayerId (FK) - Asistan Oyuncu (nullable)
+JerseyNumberAtMatch (Maçtaki Forma Numarası) - nullable
 ```
+**Not**: TeamIdAtMatch, gol atıldığında oyuncunun hangi takımda oynadığını kaydeder. Bu, aynı oyuncunun farklı takımlarda attığı golleri düzgün şekilde takip etmeyi sağlar.
 
 #### 🏟️ Stadiums (Stadyumlar)
 ```

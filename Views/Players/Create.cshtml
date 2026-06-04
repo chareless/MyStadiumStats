@@ -18,16 +18,6 @@
                         <input asp-for="Name" class="form-control" placeholder="örn. Mauro Icardi" />
                         <span asp-validation-for="Name" class="text-danger small"></span>
                     </div>
-                    <div class="mb-3">
-                        <label asp-for="TeamId" class="form-label">Takım</label>
-                        <select asp-for="TeamId" class="form-select">
-                            <option value="">-- Takım Seçin (Opsiyonel) --</option>
-                            @foreach (var t in teams)
-                            {
-                                <option value="@t.Id" selected="@(Model.TeamId == t.Id)">@t.Name</option>
-                            }
-                        </select>
-                    </div>
                     <div class="mb-4">
                         <label asp-for="CurrentJerseyNumber" class="form-label"></label>
                         <input asp-for="CurrentJerseyNumber" type="number" min="1" max="99"

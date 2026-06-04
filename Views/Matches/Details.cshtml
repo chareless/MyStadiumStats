@@ -1,11 +1,11 @@
 @model MyStadiumStats.Models.Match
 @{
     ViewData["Title"] = "Maç Detayı";
-    var homeGoals = Model.Goals.Where(g => !g.IsOwnGoal && g.Player.TeamId == Model.HomeTeamId)
-                               .Concat(Model.Goals.Where(g => g.IsOwnGoal && g.Player.TeamId == Model.AwayTeamId))
+    var homeGoals = Model.Goals.Where(g => !g.IsOwnGoal && g.TeamIdAtMatch == Model.HomeTeamId)
+                               .Concat(Model.Goals.Where(g => g.IsOwnGoal && g.TeamIdAtMatch == Model.AwayTeamId))
                                .OrderBy(g => g.Minute).ToList();
-    var awayGoals = Model.Goals.Where(g => !g.IsOwnGoal && g.Player.TeamId == Model.AwayTeamId)
-                               .Concat(Model.Goals.Where(g => g.IsOwnGoal && g.Player.TeamId == Model.HomeTeamId))
+    var awayGoals = Model.Goals.Where(g => !g.IsOwnGoal && g.TeamIdAtMatch == Model.AwayTeamId)
+                               .Concat(Model.Goals.Where(g => g.IsOwnGoal && g.TeamIdAtMatch == Model.HomeTeamId))
                                .OrderBy(g => g.Minute).ToList();
     
     // Determine result based on MyTeam

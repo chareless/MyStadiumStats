@@ -43,5 +43,12 @@ public class AppDbContext : DbContext
             .WithMany(c => c.AwayCoachMatches)
             .HasForeignKey(m => m.AwayCoachId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        // Goal -> TeamAtMatch (which team the goal was scored for)
+        modelBuilder.Entity<Goal>()
+            .HasOne(g => g.TeamAtMatch)
+            .WithMany(t => t.GoalsForTeam)
+            .HasForeignKey(g => g.TeamIdAtMatch)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

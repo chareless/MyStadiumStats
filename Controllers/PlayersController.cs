@@ -14,9 +14,9 @@ public class PlayersController : Controller
     public async Task<IActionResult> Index()
     {
         var players = await _db.Players
-            .Include(p => p.Team)
             .Include(p => p.Goals)
-            .OrderBy(p => p.Team!.Name).ThenBy(p => p.Name)
+                .ThenInclude(g => g.TeamAtMatch)
+            .OrderBy(p => p.Name)
             .ToListAsync();
         return View(players);
     }
@@ -29,7 +29,9 @@ public class PlayersController : Controller
             .Include(m => m.Stadium)
             .Include(m => m.Goals)
                 .ThenInclude(g => g.Player)
-                    .ThenInclude(p => p.Team)
+            .Include(m => m.Goals)
+                .ThenInclude(g => g.TeamAtMatch)
+            .AsNoTracking()
             .ToListAsync();
 
         var allGoals = matches.SelectMany(m => m.Goals).ToList();
@@ -37,19 +39,19 @@ public class PlayersController : Controller
         // Filter by team if specified
         if (teamId.HasValue)
         {
-            allGoals = allGoals.Where(g => g.Player.TeamId == teamId).ToList();
+            allGoals = allGoals.Where(g => g.TeamIdAtMatch == teamId).ToList();
         }
         
         var totalGoals = allGoals.Where(g => !g.IsOwnGoal).Count();
 
         var topScorers = allGoals
             .Where(g => !g.IsOwnGoal)
-            .GroupBy(g => g.PlayerId)
+            .GroupBy(g => g.Player.Name)
             .Select(g => new PlayerGoalStat
             {
-                PlayerId = g.Key,
-                PlayerName = g.First().Player.Name,
-                TeamName = g.First().Player.Team?.Name,
+                PlayerId = g.First().PlayerId,
+                PlayerName = g.Key,
+                TeamName = g.Select(x => x.TeamAtMatch?.Name).Distinct().Count() > 1 ? "Birden Fazla" : g.First().TeamAtMatch?.Name ?? "-",
                 TotalGoals = g.Count(),
                 PenaltyGoals = g.Count(x => x.IsPenalty),
                 GoalPercentage = totalGoals > 0 ? Math.Round((double)g.Count() / totalGoals * 100, 2) : 0,
@@ -60,7 +62,7 @@ public class PlayersController : Controller
                                   .ToList(),
                 CurrentJerseyNumber = g.First().Player.CurrentJerseyNumber,
                 AvgGoalsPerMatch = Math.Round((double)g.Count() / g.Select(x => x.MatchId).Distinct().Count(), 2),
-                Breakdown = g.GroupBy(x => new { Team = x.Player.Team?.Name, Jersey = x.JerseyNumberAtMatch })
+                Breakdown = g.GroupBy(x => new { Team = x.TeamAtMatch?.Name, Jersey = x.JerseyNumberAtMatch })
                               .Select(bg => new PlayerGoalStat.GoalBreakdown
                               {
                                   TeamName = bg.Key.Team,

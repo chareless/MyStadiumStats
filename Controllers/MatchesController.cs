@@ -19,7 +19,10 @@ public class MatchesController : Controller
         var query = _db.Matches
             .Include(m => m.HomeTeam).Include(m => m.AwayTeam)
             .Include(m => m.Stadium).Include(m => m.Goals)
-                .ThenInclude(g => g.Player).ThenInclude(p => p.Team)
+                .ThenInclude(g => g.Player)
+            .Include(m => m.Goals)
+                .ThenInclude(g => g.TeamAtMatch)
+            .AsNoTracking()
             .AsQueryable();
 
         // Filter by team (home or away)
@@ -140,7 +143,8 @@ public class MatchesController : Controller
         var match = await _db.Matches
             .Include(m => m.HomeTeam).Include(m => m.AwayTeam)
             .Include(m => m.Stadium).Include(m => m.HomeCoach).Include(m => m.AwayCoach)
-            .Include(m => m.Goals).ThenInclude(g => g.Player).ThenInclude(p => p.Team)
+            .Include(m => m.Goals).ThenInclude(g => g.Player)
+            .Include(m => m.Goals).ThenInclude(g => g.TeamAtMatch)
             .FirstOrDefaultAsync(m => m.Id == id);
         if (match == null) return NotFound();
         
@@ -202,7 +206,7 @@ public class MatchesController : Controller
             Minute      = g.Minute,
             IsOwnGoal   = g.IsOwnGoal,
             IsPenalty   = g.IsPenalty,
-            TeamSide    = g.Player.TeamId == match.HomeTeamId ? "home" : "away"
+            TeamSide    = g.TeamIdAtMatch == match.HomeTeamId ? "home" : "away"
         }).ToList();
 
         var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
@@ -256,8 +260,49 @@ public class MatchesController : Controller
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
     {
-        var match = await _db.Matches.Include(m => m.Goals).FirstOrDefaultAsync(m => m.Id == id);
-        if (match != null) { _db.Goals.RemoveRange(match.Goals); _db.Matches.Remove(match); await _db.SaveChangesAsync(); }
+        var match = await _db.Matches
+            .Include(m => m.Goals)
+                .ThenInclude(g => g.Player)
+            .FirstOrDefaultAsync(m => m.Id == id);
+        
+        if (match != null)
+        {
+            // Get player IDs from goals in this match
+            var playerIds = match.Goals.Select(g => g.PlayerId).Distinct().ToList();
+            
+            // Remove goals and match
+            _db.Goals.RemoveRange(match.Goals);
+            _db.Matches.Remove(match);
+            await _db.SaveChangesAsync();
+            
+            // Update CurrentJerseyNumber for affected players
+            foreach (var playerId in playerIds)
+            {
+                var player = await _db.Players
+                    .Include(p => p.Goals)
+                        .ThenInclude(g => g.Match)
+                    .FirstOrDefaultAsync(p => p.Id == playerId);
+                
+                if (player != null)
+                {
+                    var nonOwnGoals = player.Goals.Where(g => !g.IsOwnGoal).OrderByDescending(g => g.Match.Date).ToList();
+                    if (nonOwnGoals.Any())
+                    {
+                        // Set to the jersey number of the most recent goal
+                        var lastGoal = nonOwnGoals.First();
+                        player.CurrentJerseyNumber = lastGoal.JerseyNumberAtMatch;
+                    }
+                    else
+                    {
+                        // No remaining goals, clear jersey number
+                        player.CurrentJerseyNumber = null;
+                    }
+                }
+            }
+            
+            await _db.SaveChangesAsync();
+        }
+        
         return RedirectToAction(nameof(Index));
     }
 
@@ -284,12 +329,12 @@ public class MatchesController : Controller
             var teamId = g.TeamSide == "home" ? homeTeamId : awayTeamId;
             var name = g.PlayerName.Trim();
             // Load candidates into memory to avoid SQLite LOWER() failing on Turkish/Unicode chars
-            var candidates = await _db.Players.Where(p => p.TeamId == teamId).ToListAsync();
+            var candidates = await _db.Players.ToListAsync();
             var player = candidates.FirstOrDefault(p =>
                 string.Equals(p.Name.Trim(), name, StringComparison.OrdinalIgnoreCase));
             if (player == null)
             {
-                player = new Player { Name = name, TeamId = teamId, CurrentJerseyNumber = g.JerseyNumber };
+                player = new Player { Name = name, CurrentJerseyNumber = g.JerseyNumber };
                 _db.Players.Add(player);
                 await _db.SaveChangesAsync();
             }
@@ -298,8 +343,9 @@ public class MatchesController : Controller
 
             _db.Goals.Add(new Goal
             {
-                MatchId = matchId, PlayerId = player.Id, Minute = g.Minute,
-                IsOwnGoal = g.IsOwnGoal, IsPenalty = g.IsPenalty, JerseyNumberAtMatch = g.JerseyNumber
+                MatchId = matchId, PlayerId = player.Id, TeamIdAtMatch = teamId,
+                Minute = g.Minute, IsOwnGoal = g.IsOwnGoal, IsPenalty = g.IsPenalty,
+                JerseyNumberAtMatch = g.JerseyNumber
             });
         }
         await _db.SaveChangesAsync();
@@ -338,6 +384,6 @@ public class MatchesController : Controller
         vm.TeamNames    = await _db.Teams.OrderBy(t => t.Name).Select(t => t.Name).ToListAsync();
         vm.StadiumNames = await _db.Stadiums.OrderBy(s => s.Name).Select(s => s.Name).ToListAsync();
         vm.CoachNames   = await _db.Coaches.OrderBy(c => c.Name).Select(c => c.Name).ToListAsync();
-        vm.Players      = await _db.Players.Include(p => p.Team).OrderBy(p => p.Name).ToListAsync();
+        vm.Players      = await _db.Players.OrderBy(p => p.Name).ToListAsync();
     }
 }

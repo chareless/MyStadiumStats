@@ -10,11 +10,8 @@ public class Player
     [Display(Name = "Ad Soyad")]
     public string Name { get; set; } = string.Empty;
 
-    public int? TeamId { get; set; }
-
     [Display(Name = "Güncel Forma No")]
     public int? CurrentJerseyNumber { get; set; }
 
-    public Team? Team { get; set; }
     public ICollection<Goal> Goals { get; set; } = [];
 }

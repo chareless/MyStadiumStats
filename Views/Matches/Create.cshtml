@@ -170,7 +170,7 @@
 @section Scripts {
 <script>
 const players = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-    Model.Players.Select(p => new { name = p.Name, team = p.Team != null ? p.Team.Name : "" }).ToList()
+    Model.Players.Select(p => new { name = p.Name }).ToList()
 ));
 
 let goals = [];
@@ -213,7 +213,17 @@ function renderGoalRows() {
     
     goals.forEach((g, i) => {
         const tr = document.createElement('tr');
-        const playerOptionsHtml = players.map(p => `<option value="${escHtml(p.name)}">${escHtml(p.name)}</option>`).join('');
+        
+        // Deduplicate players by name (only show unique names, group teams together)
+        const uniquePlayerMap = new Map();
+        players.forEach(p => {
+            if (!uniquePlayerMap.has(p.name)) {
+                uniquePlayerMap.set(p.name, p);
+            }
+        });
+        const playerOptionsHtml = Array.from(uniquePlayerMap.values())
+            .map(p => `<option value="${escHtml(p.name)}">${escHtml(p.name)}</option>`)
+            .join('');
         
         tr.innerHTML = `
             <td>
